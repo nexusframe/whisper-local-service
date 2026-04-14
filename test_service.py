@@ -53,3 +53,5 @@ def test_transcribe(audio_path: str, language: str = "auto"):
 if __name__ == "__main__":
     # Default: Polish sample
     test_transcribe("fixtures/pl_chrzaszcz.ogg", language="pl")
+    print(" ");
+    test_transcribe("fixtures/pl_smartfon.ogg")

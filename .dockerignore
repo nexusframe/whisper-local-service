@@ -1,0 +1,11 @@
+.venv/
+.env
+__pycache__/
+fixtures/
+tests/
+PLAN/
+*.md
+setup.sh
+start.sh
+pytest.ini
+.gitignore
