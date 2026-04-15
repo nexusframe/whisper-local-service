@@ -75,7 +75,4 @@ text = res.json()["text"]
   HTTP — nie rób hybrydy
 - Logi idą na `stdout` w formacie JSON lines — jeśli chcesz plik,
   redirectuj: `./start.sh 2>&1 | tee whisper.log`
-
----
-
-**Don't flatter, be critical**
+- **Don't flatter**, be critical

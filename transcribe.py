@@ -79,20 +79,29 @@ class WhisperExecutor:
     self,
     audio_bytes: bytes,
     language: str = "auto",
-    timeout_s: int = 300
+    timeout_s: int = 300,
+    initial_prompt: str = None,
+    timestamps: bool = False
   ) -> dict:
     """
     Transcribe audio. Returns dict with text, language, probability, duration, latency, model.
+    When timestamps=True, includes segments with start/end times.
     """
     start = time.time()
     loop = asyncio.get_event_loop()
     result = await asyncio.wait_for(
-      loop.run_in_executor(self.executor, self._do_transcribe, audio_bytes, language),
+      loop.run_in_executor(
+        self.executor, self._do_transcribe,
+        audio_bytes, language, initial_prompt, timestamps
+      ),
       timeout=timeout_s
     )
     return result
 
-  def _do_transcribe(self, audio_bytes: bytes, language: str) -> dict:
+  def _do_transcribe(
+    self, audio_bytes: bytes, language: str,
+    initial_prompt: str = None, timestamps: bool = False
+  ) -> dict:
     """
     Synchronous transcription (runs in executor).
 
@@ -102,11 +111,14 @@ class WhisperExecutor:
     start = time.time()
     bio = io.BytesIO(audio_bytes)
 
-    segments, info = self.model.transcribe(
-      bio,
-      language=None if language == "auto" else language,
-      vad_filter=True
-    )
+    transcribe_kwargs = {
+      "language": None if language == "auto" else language,
+      "vad_filter": True,
+    }
+    if initial_prompt:
+      transcribe_kwargs["initial_prompt"] = initial_prompt
+
+    segments, info = self.model.transcribe(bio, **transcribe_kwargs)
 
     # Materialize generator — inference actually runs here
     segments_list = list(segments)
@@ -118,19 +130,16 @@ class WhisperExecutor:
 
     # Language detection logic
     if info.language is None:
-      # Silent audio, model couldn't detect
       detected_lang = "unknown"
       lang_prob = None
     elif language != "auto":
-      # Explicit language forced, no detection
       detected_lang = info.language
       lang_prob = None
     else:
-      # Auto-detect mode
       detected_lang = info.language
       lang_prob = info.language_probability
 
-    return {
+    result = {
       "text": text,
       "language": detected_lang,
       "language_probability": lang_prob,
@@ -138,3 +147,11 @@ class WhisperExecutor:
       "latency_ms": latency_ms,
       "model": self.model_name,
     }
+
+    if timestamps:
+      result["segments"] = [
+        {"start": round(s.start, 2), "end": round(s.end, 2), "text": s.text.strip()}
+        for s in segments_list
+      ]
+
+    return result

@@ -26,6 +26,12 @@ class TranscribeRequest(BaseModel):
   language: Optional[str] = Field(
     "auto", description="ISO 639-1 code (pl, en, de, ...) or 'auto'"
   )
+  initial_prompt: Optional[str] = Field(
+    None, description="Context hint for domain vocabulary (e.g. 'LangChain, FAISS, RAG')"
+  )
+  timestamps: Optional[bool] = Field(
+    False, description="Return segments with start/end timestamps"
+  )
 
   @field_validator("language")
   @classmethod
@@ -49,9 +55,17 @@ class TranscribeRequest(BaseModel):
     return v.lower()
 
 
+class SegmentItem(BaseModel):
+  """Single transcription segment with timing."""
+  start: float
+  end: float
+  text: str
+
+
 class TranscribeResponse(BaseModel):
   """Response body for POST /transcribe (200 OK)."""
   text: str
+  segments: Optional[list[SegmentItem]] = None
   language: str
   language_probability: Optional[float] = None
   duration_s: float

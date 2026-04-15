@@ -127,7 +127,11 @@ async def transcribe(request: dict):
   # Transcribe with timeout
   timeout_s = int(os.getenv("WHISPER_REQUEST_TIMEOUT_S", "300"))
   try:
-    result = await executor.transcribe(audio_bytes, language, timeout_s=timeout_s)
+    result = await executor.transcribe(
+      audio_bytes, language, timeout_s=timeout_s,
+      initial_prompt=request.get("initial_prompt"),
+      timestamps=request.get("timestamps", False)
+    )
     # Log transcribe complete
     logger.info("transcribe_complete", extra={
       "request_id": request_id,
